@@ -9,7 +9,7 @@ class TestMarketSimulator(unittest.TestCase):
     super(TestMarketSimulator, self).__init__(*args, **kwargs)
     
     self.order_file = "test_orders.csv"
-    self.value_file_name = "value.csv"
+    self.value_file_name = "test_value.csv"
     self.cash = "1000000"
 
   def test_case_parse_order(self):
