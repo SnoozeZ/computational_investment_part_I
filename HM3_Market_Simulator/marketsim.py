@@ -26,14 +26,12 @@ class MarketSimulator():
     self.market_data = self._read_market(self.start_date, \
                                          self.end_date, \
                                          self.symbol_list)
-    #self.values = np.zeros(shape=(self.day_nums, 3)) # date, Equity, Cash
     self.values = dict() # date: (dict{symbol:amount}, cash)
 
   def Run(self):
     print "Simulator Run."
     last_stock = dict()
     last_cash = self.cash
-
     for date, symbol, action, amount in self.orders:
       cost = self.market_data.loc[date + dt.timedelta(hours=16) , symbol] * amount
       if action == "BUY":
@@ -47,7 +45,7 @@ class MarketSimulator():
         if symbol in last_stock:
           last_stock[symbol] -= amount
         else:
-          last_stock[symbol] = amount
+          last_stock[symbol] = 0 - amount
       else:
         print "Invalid action mode"
 
@@ -57,25 +55,22 @@ class MarketSimulator():
     print "Simulator Provide Value."
     f = open(self.value_file_name, "w")
     last_value = []
-    for day_num in range(self.day_nums + 1):
-      current_date = self.start_date + dt.timedelta(days=day_num)
+    for date in map(lambda x: x.to_pydatetime(), 
+                    du.getNYSEdays(self.start_date, self.end_date)): 
       wealth = 0.0
-      if current_date in self.values:
-        wealth = self._cal_daily_wealth(current_date, self.values[current_date])
-        last_value = self.values[current_date]
+      if date in self.values:
+        wealth = self._cal_daily_wealth(date, self.values[date])
+        last_value = self.values[date]
       else: 
-        wealth = self._cal_daily_wealth(current_date, last_value)
+        wealth = self._cal_daily_wealth(date, last_value)
 
-      f.write('{}, {}, {}, {}\n'.format(current_date.year, 
-                                      current_date.month, 
-                                      current_date.day, wealth))
+      f.write('{}, {}, {}, {}\n'.format(date.year, date.month, 
+                                        date.day, wealth))
   
   def _cal_daily_wealth(self, date, value):
     wealth = value[1]
-    # Cautious! Need to calculate last trading date........ :/
-    valid_date = du.getNYSEdays(date - dt.timedelta(days=365), date)[-1].to_pydatetime()
     for symbol, amount in value[0].items():
-      wealth += self.market_data.loc[valid_date + dt.timedelta(hours=16), symbol] * amount
+      wealth += self.market_data.loc[date + dt.timedelta(hours=16), symbol] * amount
     return wealth
     
 
@@ -83,9 +78,12 @@ class MarketSimulator():
     f = open(order_file_name, 'r')
     self.orders = []
     for l in f:
+      if len(l)<2:
+        continue
+      l = l[:-2] if (l[-2] == ',') else l
       year, month, day, symbol, action, amount = map(lambda x: x.strip(), l.split(","))
       date = dt.datetime(int(year), int(month), int(day))
-      self.orders.append([date, symbol, action, int(amount)])
+      self.orders.append([date, symbol, action.upper(), int(amount)])
     self.orders = sorted(self.orders, key=lambda order : order[0]) # sort by date
     return self.orders
 
@@ -105,10 +103,11 @@ class MarketSimulator():
     return d_data["close"]
 
 if __name__ == "__main__":
-  # usage: python marketsim.py 1000000 orders.csv values.csv
-  if len(sys.argv) != 3:
+  # usage: python marketsim.py 1000000 data/orders.csv data/values.csv
+  if len(sys.argv) != 4:
     print "Param number is incorrect."
   else:
     simulator = MarketSimulator(sys.argv[1], sys.argv[2], sys.argv[3])
     simulator.Run()
+    simulator.ProvideValue()
 

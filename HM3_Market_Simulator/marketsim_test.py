@@ -8,11 +8,11 @@ class TestMarketSimulator(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestMarketSimulator, self).__init__(*args, **kwargs)
     
-    self.order_file = "test_orders.csv"
-    self.value_file_name = "test_value.csv"
+    self.order_file = "data/test_orders.csv"
+    self.value_file_name = "data/test_value.csv"
     self.cash = "1000000"
 
-  def test_case_parse_order(self):
+  def test_case_1(self):
     simulator = MarketSimulator(self.cash, \
                                 self.order_file, \
                                 self.value_file_name)
@@ -37,6 +37,13 @@ class TestMarketSimulator(unittest.TestCase):
     print simulator.values
 
     # Test Output.
+    simulator.ProvideValue()
+
+  def test_case_2(self):
+    self.order_file = "data/test_orders_2.csv"
+    self.value_file_name = "data/test_value_2.csv"
+    simulator = MarketSimulator(self.cash, self.order_file, self.value_file_name)
+    simulator.Run()
     simulator.ProvideValue()
 
 
